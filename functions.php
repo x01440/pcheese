@@ -276,5 +276,60 @@ function woocommerce_header_add_to_cart_fragment( $fragments ) {
 	$fragments['a.minicart'] = ob_get_clean();
 	
 	return $fragments;
-	
+}
+
+// Allow items in pending state to be edited to allow revising the cost of the order down.
+
+add_filter( 'wc_order_is_editable', 'wc_make_processing_orders_editable', 100, 2 );
+function wc_make_processing_orders_editable( $is_editable, $order ) {
+    if ( $order->get_status() == 'processing' ) {
+        $is_editable = true;
+    }
+
+    return $is_editable;
+}
+
+add_action('woocommerce_cart_calculate_fees','endo_handling_fee');
+function endo_handling_fee() {
+     global $woocommerce;
+ 
+     if ( is_admin() && ! defined('DOING_AJAX'))
+          return;
+ 
+     $cart_contents = $woocommerce->cart->get_cart_contents();
+     $is_variable_weight = false;
+     foreach ($cart_contents as $item) {
+       $product = wc_get_product($item["product_id"]);
+       /*
+        // Use the weight of products to determine if they're variable products.
+        // Products weighing 1.33 will be variable weight products.
+        * $weight = $product->get_weight();
+       if ($weight == 1.33) {
+         $is_variable_weight = true;
+       }
+       */
+       
+       // Get the tags and look for the by-weight tag.  If that tag is set on the product then
+       // add a handling fee to the order.
+       $tags = get_the_terms($product->get_id(), "product_tag");
+       if ($tags) {
+         foreach ($tags as $tag) {
+           if ($tag->slug == "by-weight") {
+             // print ("***There is at least one item in the cart that has a handling fee attached to it.");
+             $is_variable_weight = true;
+           }
+         }
+       }
+     }
+     
+     if ($is_variable_weight) {
+       $fee = 5.00;
+       $woocommerce->cart->add_fee('Handling', $fee, true, 'standard');
+     }
+}
+
+// TODO: Add an action for woocommerce_process_shop_order_meta to make sure order is revised down.
+// add_action( 'woocommerce_process_shop_order_meta', 'woocommerce_process_shop_order', 12, 2 );
+function woocommerce_process_shop_order ( $post_id, $post ) {
+  print_r($post);
 }
