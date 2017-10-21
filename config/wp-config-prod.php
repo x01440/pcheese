@@ -100,3 +100,6 @@ if (!defined('ABSPATH'))
 
 /** Sets up WordPress vars and included files. */
 require_once(ABSPATH . 'wp-settings.php');
+
+/* Cart Redirect Location - Prod */
+define('WP_CART_REDIRECT_URL', "http://dev.pinconningcheese.com/");

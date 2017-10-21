@@ -221,7 +221,7 @@ add_filter("megamenu_themes", "megamenu_add_theme_custom_1_1486493626");
  * @return string
  */
 function wc_empty_cart_redirect_url() {
-    return 'http://wordpress.pinconningcheese.com/';
+    return WP_CART_REDIRECT_URL;
 }
 add_filter( 'woocommerce_return_to_shop_redirect', 'wc_empty_cart_redirect_url' );
 remove_action( 'woocommerce_product_thumbnails', 'woocommerce_show_product_thumbnails', 20 );
