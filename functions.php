@@ -289,47 +289,104 @@ function wc_make_processing_orders_editable( $is_editable, $order ) {
     return $is_editable;
 }
 
+/*
+ * Calculate handling fees for the cart.
+ */
 add_action('woocommerce_cart_calculate_fees','endo_handling_fee');
 function endo_handling_fee() {
      global $woocommerce;
  
      if ( is_admin() && ! defined('DOING_AJAX'))
           return;
- 
-     $cart_contents = $woocommerce->cart->get_cart_contents();
-     $is_variable_weight = false;
-     foreach ($cart_contents as $item) {
-       $product = wc_get_product($item["product_id"]);
-       /*
-        // Use the weight of products to determine if they're variable products.
-        // Products weighing 1.33 will be variable weight products.
-        * $weight = $product->get_weight();
-       if ($weight == 1.33) {
-         $is_variable_weight = true;
-       }
-       */
-       
-       // Get the tags and look for the by-weight tag.  If that tag is set on the product then
-       // add a handling fee to the order.
-       $tags = get_the_terms($product->get_id(), "product_tag");
-       if ($tags) {
-         foreach ($tags as $tag) {
-           if ($tag->slug == "by-weight") {
-             // print ("***There is at least one item in the cart that has a handling fee attached to it.");
-             $is_variable_weight = true;
-           }
-         }
-       }
-     }
-     
-     if ($is_variable_weight) {
-       $fee = 5.00;
-       $woocommerce->cart->add_fee('Handling', $fee, true, 'standard');
-     }
+    $fee = 8.00;
+    $woocommerce->cart->add_fee('Handling', $fee, true, 'standard');
 }
 
 // TODO: Add an action for woocommerce_process_shop_order_meta to make sure order is revised down.
 // add_action( 'woocommerce_process_shop_order_meta', 'woocommerce_process_shop_order', 12, 2 );
 function woocommerce_process_shop_order ( $post_id, $post ) {
   print_r($post);
+}
+
+// Before order review, revise variable product quantities up to 1.33.
+// define the woocommerce_checkout_before_order_review callback 
+function action_woocommerce_checkout_before_order_review() {
+    // *** Setup decimal cart quantity and cart change on checkout ***
+    $PRODUCT_WEIGHT_MESSAGE = "Your order has a product that is sold by weight. The quantity has been " +
+        "adjusted up to 1.33lbs but you will only be charged based on the exact weight of product " +
+        "cut per your order times the price per pound.";
+    $PRODUCT_BY_WEIGHT_TAG = "by-weight";
+    global $woocommerce;
+    $cart_contents = $woocommerce->cart->get_cart_contents();
+    foreach ($cart_contents as $item) {
+      $product = wc_get_product($item["product_id"]);
+       
+      // Get the tags and look for the by-weight tag.  If that tag is set on the product then
+      // add a handling fee to the order.
+      $tags = get_the_terms($product->get_id(), "product_tag");
+      if ($tags) {
+        foreach ($tags as $tag) {
+          if ($tag->slug == $PRODUCT_BY_WEIGHT_TAG) {
+            print $PRODUCT_WEIGHT_MESSAGE;
+            $quantity = $item["quantity"];
+            $woocommerce->cart->set_quantity($item["key"], $quantity + 0.33);
+          }
+        }
+      }
+    }
+}; 
+         
+// add the action 
+add_action(
+    'woocommerce_checkout_before_order_review',
+    'action_woocommerce_checkout_before_order_review',
+    10,
+    0);
+
+// Allow float values in cart.
+// Add min value to the quantity field (default = 1)
+add_filter('woocommerce_quantity_input_min', 'min_decimal', 10, 2);
+function min_decimal($val, $product) {
+  $tags = get_the_terms($product->get_id(), "product_tag");
+  if ($tags) {
+    foreach ($tags as $tag) {
+      if ($tag->slug == $PRODUCT_BY_WEIGHT_TAG) {
+        return 0.01;
+      }
+    }
+  }
+  return 1;
+}
+ 
+// Add step value to the quantity field (default = 1)
+add_filter('woocommerce_quantity_input_step', 'nsk_allow_decimal', 10, 2);
+function nsk_allow_decimal($val, $product) {
+  $tags = get_the_terms($product->get_id(), "product_tag");
+  if ($tags) {
+    foreach ($tags as $tag) {
+      if ($tag->slug == $PRODUCT_BY_WEIGHT_TAG) {
+        return 0.01;
+      }
+    }
+  }
+  return 1;
+}
+ 
+// Removes the WooCommerce filter, that is validating the quantity to be an int
+remove_filter('woocommerce_stock_amount', 'intval');
+ 
+// Add a filter, that validates the quantity to be a float
+add_filter('woocommerce_stock_amount', 'floatval');
+ 
+// Add unit price fix when showing the unit price on processed orders
+add_filter('woocommerce_order_amount_item_total', 'unit_price_fix', 10, 5);
+function unit_price_fix($price, $order, $item, $inc_tax = false, $round = true) {
+    $qty = (!empty($item['qty']) && $item['qty'] != 0) ? $item['qty'] : 1;
+    if($inc_tax) {
+        $price = ($item['line_total'] + $item['line_tax']) / $qty;
+    } else {
+        $price = $item['line_total'] / $qty;
+    }
+    $price = $round ? round( $price, 2 ) : $price;
+    return $price;
 }
