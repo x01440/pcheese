@@ -90,7 +90,7 @@ $table_prefix  = 'wp_';
  * @link https://codex.wordpress.org/Debugging_in_WordPress
  */
 define('WP_DEBUG', false);
-define( 'WP_DEBUG_LOG', true );
+define( 'WP_DEBUG_LOG', false );
 
 /* That's all, stop editing! Happy blogging. */
 
@@ -102,4 +102,4 @@ if ( !defined('ABSPATH') )
 require_once(ABSPATH . 'wp-settings.php');
 
 /* Cart Redirect Location - Prod */
-define('WP_CART_REDIRECT_URL', "http://www.pinconningcheese.com/");
+define('WP_CART_REDIRECT_URL', "http://prod.pinconningcheese.com/");

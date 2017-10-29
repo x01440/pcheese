@@ -299,22 +299,32 @@ function endo_handling_fee() {
      if ( is_admin() && ! defined('DOING_AJAX'))
           return;
     $fee = 8.00;
-    $woocommerce->cart->add_fee('Handling', $fee, true, 'standard');
+    $woocommerce->cart->add_fee('Handling', $fee, false, 'standard');
 }
 
 // TODO: Add an action for woocommerce_process_shop_order_meta to make sure order is revised down.
 // add_action( 'woocommerce_process_shop_order_meta', 'woocommerce_process_shop_order', 12, 2 );
 function woocommerce_process_shop_order ( $post_id, $post ) {
-  print_r($post);
+  // print_r($post);
+}
+
+// Show a cart subtotal in the admin.
+add_action("woocommerce_admin_order_items_after_line_items", "woocommerce_show_admin_subtotal", 12, 2);
+function woocommerce_show_admin_subtotal($order_id) {
+  global $woocommerce;
+  $order = wc_get_order($order_id);
+  $subtotal = $order->get_subtotal();
+  
+  printf("<tr><td colspan='4'>Subtotal</td><td colspan='3'>$".$subtotal."</td></tr>");
 }
 
 // Before order review, revise variable product quantities up to 1.33.
 // define the woocommerce_checkout_before_order_review callback 
 function action_woocommerce_checkout_before_order_review() {
     // *** Setup decimal cart quantity and cart change on checkout ***
-    $PRODUCT_WEIGHT_MESSAGE = "Your order has a product that is sold by weight. The quantity has been " +
-        "adjusted up to 1.33lbs but you will only be charged based on the exact weight of product " +
-        "cut per your order times the price per pound.";
+    $PRODUCT_WEIGHT_MESSAGE = "This product is cut to order & packaged especially for you. ".
+            "Price will vary slightly based on the actual cut weight. ".
+            "Your final invoice will always reflect the cost of the exact amount you received.";
     $PRODUCT_BY_WEIGHT_TAG = "by-weight";
     global $woocommerce;
     $cart_contents = $woocommerce->cart->get_cart_contents();
@@ -324,14 +334,21 @@ function action_woocommerce_checkout_before_order_review() {
       // Get the tags and look for the by-weight tag.  If that tag is set on the product then
       // add a handling fee to the order.
       $tags = get_the_terms($product->get_id(), "product_tag");
+      $has_by_weight = false;
       if ($tags) {
         foreach ($tags as $tag) {
           if ($tag->slug == $PRODUCT_BY_WEIGHT_TAG) {
-            print $PRODUCT_WEIGHT_MESSAGE;
+            $has_by_weight = true;
             $quantity = $item["quantity"];
-            $woocommerce->cart->set_quantity($item["key"], $quantity + 0.33);
+            // In case the user refreshes, don't continue to add 0.33.
+            if (is_int($quantity)) {
+              $woocommerce->cart->set_quantity($item["key"], $quantity + 0.33);
+            }
           }
         }
+      }
+      if ($has_by_weight) {
+        print $PRODUCT_WEIGHT_MESSAGE;
       }
     }
 }; 
