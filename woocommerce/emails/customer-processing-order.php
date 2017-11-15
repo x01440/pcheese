@@ -1,8 +1,8 @@
 <?php
 /**
- * Customer on-hold order email
+ * Customer processing order email
  *
- * This template can be overridden by copying it to yourtheme/woocommerce/emails/customer-on-hold-order.php.
+ * This template can be overridden by copying it to yourtheme/woocommerce/emails/customer-processing-order.php.
  *
  * HOWEVER, on occasion WooCommerce will need to update template files and you
  * (the theme developer) will need to copy the new files to your theme to
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
-<p><?php _e( "Your order is on-hold until we confirm payment has been received. Your order details are shown below for your reference:", 'woocommerce' ); ?></p>
+<p><?php _e( "Your order has been received and is now being processed. Your order details are shown below for your reference:", 'woocommerce' ); ?></p>
 
 <p style="font-size:10px;">
    <em>The Pinconning Cheese Co. is dedicated to offering fresh, cut-to-order cheeses, meats and fudge. 
@@ -37,7 +37,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
      Thank you for shopping at <a href="http://www.pinconningcheese.com">pinconningcheese.com</a>!
    </em>
 </p>
- 
+
 <?php
 
 /**

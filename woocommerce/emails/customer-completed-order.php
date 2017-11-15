@@ -27,6 +27,17 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <p><?php printf( __( "Hi there. Your recent order on %s has been completed. Your order details are shown below for your reference:", 'woocommerce' ), get_option( 'blogname' ) ); ?></p>
 
+<p style="font-size:10px;">
+   <em>The Pinconning Cheese Co. is dedicated to offering fresh, cut-to-order cheeses, meats and fudge. 
+     It is impossible to cut exactly one pound every time. 
+     In order to calculate your order accurately, we initially charge each pound as 1.33 pounds. 
+     Once we cut and weigh your order, the final price will be rounded down to reflect the actual weight of your product. 
+     You will always be charged only for the exact amount you receive; 
+     this price will be reflected on your final invoice.<br>
+     Thank you for shopping at <a href="http://www.pinconningcheese.com">pinconningcheese.com</a>!
+   </em>
+ </p>
+
 <?php
 
 /**
