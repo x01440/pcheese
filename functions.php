@@ -278,6 +278,12 @@ function woocommerce_header_add_to_cart_fragment( $fragments ) {
 	return $fragments;
 }
 
+define("WP_WC_WEIGHT_DISCLAIMER", "This product is cut to order & packaged especially for you. ".
+            "Price will vary slightly based on the actual cut weight. ".
+            "Your final invoice will always reflect the cost of the exact amount you received.");
+
+define("WP_WC_PRODUCT_BY_WEIGHT_TAG", "by-weight");
+
 // Allow items in pending state to be edited to allow revising the cost of the order down.
 
 add_filter( 'wc_order_is_editable', 'wc_make_processing_orders_editable', 100, 2 );
@@ -308,6 +314,12 @@ function woocommerce_process_shop_order ( $post_id, $post ) {
   // print_r($post);
 }
 
+// Removes the WooCommerce filter, that is validating the quantity to be an int
+remove_filter('woocommerce_stock_amount', 'intval');
+ 
+// Add a filter, that validates the quantity to be a float
+add_filter('woocommerce_stock_amount', 'floatval');
+
 // Show a cart subtotal in the admin.
 add_action("woocommerce_admin_order_items_after_line_items", "woocommerce_show_admin_subtotal", 12, 2);
 function woocommerce_show_admin_subtotal($order_id) {
@@ -322,34 +334,32 @@ function woocommerce_show_admin_subtotal($order_id) {
 // define the woocommerce_checkout_before_order_review callback 
 function action_woocommerce_checkout_before_order_review() {
     // *** Setup decimal cart quantity and cart change on checkout ***
-    $PRODUCT_WEIGHT_MESSAGE = "This product is cut to order & packaged especially for you. ".
-            "Price will vary slightly based on the actual cut weight. ".
-            "Your final invoice will always reflect the cost of the exact amount you received.";
+    $PRODUCT_WEIGHT_MESSAGE = WP_WC_WEIGHT_DISCLAIMER;
     $PRODUCT_BY_WEIGHT_TAG = "by-weight";
     global $woocommerce;
     $cart_contents = $woocommerce->cart->get_cart_contents();
+    $has_by_weight = false;
     foreach ($cart_contents as $item) {
       $product = wc_get_product($item["product_id"]);
        
       // Get the tags and look for the by-weight tag.  If that tag is set on the product then
       // add a handling fee to the order.
       $tags = get_the_terms($product->get_id(), "product_tag");
-      $has_by_weight = false;
       if ($tags) {
         foreach ($tags as $tag) {
           if ($tag->slug == $PRODUCT_BY_WEIGHT_TAG) {
             $has_by_weight = true;
             $quantity = $item["quantity"];
             // In case the user refreshes, don't continue to add 0.33.
-            if (is_int($quantity)) {
+            if (fmod($quantity, 1) == 0) {
               $woocommerce->cart->set_quantity($item["key"], $quantity + 0.33);
             }
           }
         }
-      }
-      if ($has_by_weight) {
-        print $PRODUCT_WEIGHT_MESSAGE;
-      }
+      } 
+    }
+    if ($has_by_weight) {
+      print $PRODUCT_WEIGHT_MESSAGE;
     }
 }; 
          
@@ -364,6 +374,7 @@ add_action(
 // Add min value to the quantity field (default = 1)
 add_filter('woocommerce_quantity_input_min', 'min_decimal', 10, 2);
 function min_decimal($val, $product) {
+  $PRODUCT_BY_WEIGHT_TAG = "by-weight";
   $tags = get_the_terms($product->get_id(), "product_tag");
   if ($tags) {
     foreach ($tags as $tag) {
@@ -378,6 +389,7 @@ function min_decimal($val, $product) {
 // Add step value to the quantity field (default = 1)
 add_filter('woocommerce_quantity_input_step', 'nsk_allow_decimal', 10, 2);
 function nsk_allow_decimal($val, $product) {
+  $PRODUCT_BY_WEIGHT_TAG = "by-weight";
   $tags = get_the_terms($product->get_id(), "product_tag");
   if ($tags) {
     foreach ($tags as $tag) {
@@ -388,12 +400,6 @@ function nsk_allow_decimal($val, $product) {
   }
   return 1;
 }
- 
-// Removes the WooCommerce filter, that is validating the quantity to be an int
-remove_filter('woocommerce_stock_amount', 'intval');
- 
-// Add a filter, that validates the quantity to be a float
-add_filter('woocommerce_stock_amount', 'floatval');
  
 // Add unit price fix when showing the unit price on processed orders
 add_filter('woocommerce_order_amount_item_total', 'unit_price_fix', 10, 5);
@@ -406,4 +412,18 @@ function unit_price_fix($price, $order, $item, $inc_tax = false, $round = true) 
     }
     $price = $round ? round( $price, 2 ) : $price;
     return $price;
+}
+
+/* Show disclaimer for every product that has the sold by weight tag */
+add_action( 'woocommerce_product_meta_end', 'woocommerce_show_single_product_disclaimer', 10, 1);
+function woocommerce_show_single_product_disclaimer ($val) {
+  $PRODUCT_BY_WEIGHT_TAG = "by-weight";
+  $tags = get_the_terms(get_the_ID(), "product_tag");
+  if ($tags) {
+    foreach ($tags as $tag) {
+      if ($tag->slug == $PRODUCT_BY_WEIGHT_TAG) {
+        print "<br><br><em>".WP_WC_WEIGHT_DISCLAIMER."</em>";
+      }
+    }
+  }
 }
