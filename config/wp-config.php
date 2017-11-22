@@ -20,13 +20,13 @@
 
 // ** MySQL settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
-define('DB_NAME', 'viizgkia_pincheese');
+define('DB_NAME', 'viizgkia_wp_prod');
 
 /** MySQL database username */
-define('DB_USER', 'viizgkia_duby');
+define('DB_USER', 'viizgkia_prod');
 
 /** MySQL database password */
-define('DB_PASSWORD', '1m2i3n4e');
+define('DB_PASSWORD', 'R8*2b8SBq@');
 
 /** MySQL hostname */
 define('DB_HOST', 'localhost');
@@ -90,16 +90,19 @@ $table_prefix  = 'wp_';
  * @link https://codex.wordpress.org/Debugging_in_WordPress
  */
 define('WP_DEBUG', false);
-define( 'WP_DEBUG_LOG', false );
+define('WP_DEBUG_LOG', false);
 
 /* That's all, stop editing! Happy blogging. */
 
 /** Absolute path to the WordPress directory. */
-if ( !defined('ABSPATH') )
+if (!defined('ABSPATH'))
 	define('ABSPATH', dirname(__FILE__) . '/');
 
 /** Sets up WordPress vars and included files. */
 require_once(ABSPATH . 'wp-settings.php');
 
 /* Cart Redirect Location - Prod */
-define('WP_CART_REDIRECT_URL', "http://prod.pinconningcheese.com/");
+define('WP_CART_REDIRECT_URL', "http://pinconningcheese.com/");
+
+/* Handling fee added if any items in the cart require handling and packing. */
+define('WP_CART_HANDLING_FEE', 8.00);

@@ -102,7 +102,7 @@ if (!defined('ABSPATH'))
 require_once(ABSPATH . 'wp-settings.php');
 
 /* Cart Redirect Location - Prod */
-define('WP_CART_REDIRECT_URL', "http://prod.pinconningcheese.com/");
+define('WP_CART_REDIRECT_URL', "http://www.pinconningcheese.com/");
 
 /* Handling fee added if any items in the cart require handling and packing. */
 define('WP_CART_HANDLING_FEE', 8.00);
