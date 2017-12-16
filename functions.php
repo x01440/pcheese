@@ -270,7 +270,7 @@ function woocommerce_header_add_to_cart_fragment( $fragments ) {
 	ob_start();
 	
 	?>
-	<a class="minicart" href="<?php echo $woocommerce->cart->get_cart_url(); ?>" title="<?php _e('View your shopping cart', 'woothemes'); ?>"><?php echo sprintf(_n('%d item', '%d items', $woocommerce->cart->cart_contents_count, 'woothemes'), $woocommerce->cart->cart_contents_count);?> - <?php echo $woocommerce->cart->get_cart_total(); ?></a>
+	<a class="minicart" href="<?php echo wc_get_cart_url(); ?>" title="<?php _e('View your shopping cart', 'woothemes'); ?>"><?php echo sprintf(_n('%d item', '%d items', $woocommerce->cart->cart_contents_count, 'woothemes'), $woocommerce->cart->cart_contents_count);?> - <?php echo $woocommerce->cart->get_cart_total(); ?></a>
 	<?php
 	
 	$fragments['a.minicart'] = ob_get_clean();
@@ -283,6 +283,7 @@ define("WP_WC_WEIGHT_DISCLAIMER", "This product is cut to order & packaged espec
             "Your final invoice will always reflect the cost of the exact amount you received.");
 
 define("WP_WC_PRODUCT_BY_WEIGHT_TAG", "by-weight");
+define("WP_WC_NO_FLAT_RATE_TAG", "no-flat-rate");
 
 // Allow items in pending state to be edited to allow revising the cost of the order down.
 
@@ -337,7 +338,7 @@ function action_woocommerce_checkout_before_order_review() {
     $PRODUCT_WEIGHT_MESSAGE = WP_WC_WEIGHT_DISCLAIMER;
     $PRODUCT_BY_WEIGHT_TAG = "by-weight";
     global $woocommerce;
-    $cart_contents = $woocommerce->cart->get_cart_contents();
+    $cart_contents = $woocommerce->cart->cart_contents;
     $has_by_weight = false;
     foreach ($cart_contents as $item) {
       $product = wc_get_product($item["product_id"]);
@@ -352,7 +353,7 @@ function action_woocommerce_checkout_before_order_review() {
             $quantity = $item["quantity"];
             // In case the user refreshes, don't continue to add 0.33.
             if (fmod($quantity, 1) == 0) {
-              $woocommerce->cart->set_quantity($item["key"], $quantity + 0.33);
+              $woocommerce->cart->set_quantity($item["key"], $quantity + ($quantity * 0.33));
             }
           }
         }
@@ -426,4 +427,41 @@ function woocommerce_show_single_product_disclaimer ($val) {
       }
     }
   }
+}
+
+// Filter the shipping methods to detect products that can't ship with flat rate.
+// Possible necessary filters.
+// add_filter('woocommerce_package_rates', 'override_cart_shipping_methods');
+// add_filter('woocommerce_cart_totals_before_shipping', 'override_cart_shipping_methods');
+// add_filter('woocommerce_get_shipping_classes', 'override_cart_shipping_methods');
+add_filter('woocommerce_package_rates', 'override_cart_shipping_methods', 10, 2);
+
+function override_cart_shipping_methods($available_methods) {
+    global $woocommerce;
+    $is_no_flat_rate = false;
+
+    $cart_contents = $woocommerce->cart->get_cart_contents();
+    foreach ($cart_contents as $item) {
+      $shipping_class = $item['data']->get_shipping_class();
+      if ($shipping_class == WP_WC_NO_FLAT_RATE_TAG) {
+        $is_no_flat_rate = true;
+      }
+    }
+    
+    if ($is_no_flat_rate) {
+      foreach ($available_methods as $shipping_method) {
+        $shipping_method_id = $shipping_method->id;
+        if (strpos($shipping_method->id,'flat_rate') || strpos($shipping_method->id,'FLAT_RATE')) {
+          unset($available_methods[$shipping_method_id]);
+        }
+        if (strpos(strtolower($shipping_method->label),'flat rate')) {
+          unset($available_methods[$shipping_method_id]);
+        }
+        if (strpos($shipping_method->id,'express') || strpos($shipping_method->id,'EXPRESS')) {
+          unset($available_methods[$shipping_method_id]);
+        }
+      }
+    }
+    
+    return $available_methods;
 }

@@ -53,7 +53,7 @@ ini_set("include_path", '/home/evolutiondigital/php:' . ini_get("include_path") 
 ">Cart:</h3>
  <div class="block-content">
 <?php global $woocommerce; ?>
- <a class="minicart" href="<?php echo $woocommerce->cart->get_cart_url(); ?>"
+ <a class="minicart" href="<?php echo wc_get_cart_url(); ?>"
 title="<?php _e('Cart View', 'woothemes'); ?>">
 <?php echo sprintf(_n('%d item', '%d items', $woocommerce->cart->cart_contents_count, 'woothemes'),
  $woocommerce->cart->cart_contents_count);?>  -
